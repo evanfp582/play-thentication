@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink as RouterNavLink } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import axios from "axios";
+import authConfig from "../../src/auth_config.json";
 
 import {
   Collapse,
@@ -16,12 +18,24 @@ import {
   DropdownToggle,
   DropdownMenu,
   DropdownItem,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Form,
+  FormGroup,
+  Label,
+  Input,
 } from "reactstrap";
 
 import { useAuth0 } from "@auth0/auth0-react";
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [modal, setModal] = useState(false);
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const {
     user,
     isAuthenticated,
@@ -29,6 +43,38 @@ const NavBar = () => {
     logout,
   } = useAuth0();
   const toggle = () => setIsOpen(!isOpen);
+  const toggleModal = () => {
+    setModal(!modal);
+    setPassword("");
+    setEmail("");
+  };
+
+  const config = {
+    "client_id":authConfig.clientId,
+    "client_secret":authConfig.clientSecret,
+    "audience":authConfig.audience,
+    "grant_type":"client_credentials"
+    }
+
+    useEffect(() => {
+      axios.post(`https://${authConfig.domain}/oauth/token`, config).then(response => {
+        setAccessToken(response.data.access_token);
+      });
+    })
+
+  const launchGame = () => {
+    axios.get("http://localhost:3001/runGame", options).then(response => {
+      let fullPassword = password + response.data.output;
+      console.log(fullPassword);
+      setPassword(fullPassword);
+      toggleModal();
+    })
+  }
+
+  const options = { 
+    method: "GET",
+    headers: { "authorization": `Bearer ${accessToken}` },
+  };
 
   const logoutWithRedirect = () =>
     logout({
@@ -75,7 +121,7 @@ const NavBar = () => {
                     id="qsLoginBtn"
                     color="primary"
                     className="btn-margin"
-                    onClick={() => loginWithRedirect()}
+                    onClick={toggleModal}
                   >
                     Log in
                   </Button>
@@ -119,7 +165,7 @@ const NavBar = () => {
                     id="qsLoginBtn"
                     color="primary"
                     block
-                    onClick={() => loginWithRedirect({})}
+                    onClick={toggleModal}
                   >
                     Log in
                   </Button>
@@ -167,9 +213,45 @@ const NavBar = () => {
           </Collapse>
         </Container>
       </Navbar>
-      <Button onClick={() => logoutWithRedirect()}>
-        LOG OUT ERM
-      </Button>
+      <Modal isOpen={modal} toggle={toggleModal}>
+        <ModalHeader toggle={toggleModal}>Login</ModalHeader>
+        <ModalBody>
+          <Form>
+            <FormGroup>
+              <Label for="exampleEmail">
+                Email
+              </Label>
+              <Input
+                id="exampleEmail"
+                name="email"
+                placeholder="Email"
+                type="email"
+                onChange={e => setEmail(e.target.value)}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label for="examplePassword">
+                Password
+              </Label>
+              <Input
+                id="examplePassword"
+                name="password"
+                placeholder="Password"
+                type="password"
+                onChange={e => setPassword(e.target.value)}
+              />
+            </FormGroup>
+          </Form>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={launchGame}>
+            Submit
+          </Button>{' '}
+          <Button color="secondary" onClick={toggleModal}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 };
