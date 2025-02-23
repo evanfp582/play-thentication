@@ -167,6 +167,9 @@ const NavBar = () => {
           </Collapse>
         </Container>
       </Navbar>
+      <Button onClick={() => logoutWithRedirect()}>
+        LOG OUT ERM
+      </Button>
     </div>
   );
 };
